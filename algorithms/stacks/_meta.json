@@ -1,0 +1,6 @@
+{
+  "name": "Stacks",
+  "description": "Last-In-First-Out (LIFO) data structure with push, pop, and peek operations.",
+  "icon": "stack",
+  "color": "#34d399"
+}

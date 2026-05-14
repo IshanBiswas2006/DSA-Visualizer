@@ -1,0 +1,16 @@
+{
+  "name": "dsa-visualizer-backend",
+  "version": "1.0.0",
+  "description": "Backend server for DSA Visualizer — serves static files and auto-scans algorithm directories",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5"
+  },
+  "keywords": ["dsa", "visualizer", "algorithms"],
+  "license": "MIT"
+}

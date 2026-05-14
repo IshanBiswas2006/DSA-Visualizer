@@ -1,0 +1,6 @@
+{
+  "name": "Trees",
+  "description": "Hierarchical node-based structures — BST, AVL, heaps, and traversals.",
+  "icon": "tree",
+  "color": "#f87171"
+}

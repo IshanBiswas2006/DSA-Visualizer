@@ -1,0 +1,6 @@
+{
+  "name": "Linked Lists",
+  "description": "Sequential nodes connected by pointers — singly, doubly, and circular linked lists.",
+  "icon": "link",
+  "color": "#818cf8"
+}

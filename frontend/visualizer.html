@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AlgoViz Visualizer — Interactive step-by-step algorithm visualization with code highlighting, array animations, and variable tracking.">
+  <title>Visualizer — AlgoViz</title>
+
+  <link rel="stylesheet" href="assets/CSS/variables.css">
+  <link rel="stylesheet" href="assets/CSS/base.css">
+  <link rel="stylesheet" href="assets/CSS/animations.css">
+  <link rel="stylesheet" href="assets/CSS/components.css">
+  <link rel="stylesheet" href="assets/CSS/layout.css">
+  <link rel="stylesheet" href="assets/CSS/visualizer.css">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2306b6d4'/><text x='50%25' y='55%25' dominant-baseline='central' text-anchor='middle' fill='%230a0f1a' font-family='monospace' font-size='18' font-weight='900'>A</text></svg>">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar scrolled" id="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-logo">
+        <div class="nav-logo-icon">A</div>
+        <span>AlgoViz</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#categories" class="nav-link">Categories</a>
+      </div>
+      <div class="nav-actions">
+        <span class="badge" id="viz-category-badge">Sorting</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- VISUALIZER PAGE -->
+  <div class="visualizer-page">
+
+    <!-- Top Bar -->
+    <div class="viz-topbar">
+      <div class="viz-topbar-left">
+        <a href="index.html" class="viz-back-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </a>
+        <h1 class="viz-algo-name" id="viz-algo-name">Bubble Sort</h1>
+      </div>
+      <div class="viz-topbar-right">
+        <span class="chip chip-best" id="chip-best">Best: O(n)</span>
+        <span class="chip chip-avg" id="chip-avg">Avg: O(n²)</span>
+        <span class="chip chip-worst" id="chip-worst">Worst: O(n²)</span>
+        <span class="chip" id="chip-space">Space: O(1)</span>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="viz-progress">
+      <div class="viz-progress-fill" id="viz-progress" style="width: 0%;"></div>
+    </div>
+
+    <!-- Main Split -->
+    <div class="viz-main">
+
+      <!-- Code Panel -->
+      <div class="viz-code-panel">
+        <div class="viz-code-header">
+          <span class="viz-code-header-title" id="viz-file-name">bubble_sort.cpp</span>
+          <span class="badge badge-secondary" style="font-size: 10px;">C++</span>
+        </div>
+        <div class="viz-code-body" id="viz-code-body">
+          <!-- Populated by JS -->
+        </div>
+        <div class="viz-vars-panel" id="viz-vars-panel">
+          <div class="viz-vars-title">Variables</div>
+          <div class="viz-vars-grid" id="viz-vars-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Canvas Panel -->
+      <div class="viz-canvas-panel">
+        <div class="viz-canvas-header">
+          <span class="viz-code-header-title">Visualization</span>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm" id="viz-randomize" title="Randomize Array">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Randomize
+            </button>
+          </div>
+        </div>
+
+        <div class="viz-canvas" id="viz-canvas">
+          <!-- Array bars rendered by JS -->
+        </div>
+
+        <div class="viz-description" id="viz-description">
+          <p class="viz-step-text" id="viz-step-text">Press <strong>Play</strong> to start the visualization, or use <strong>Step</strong> to advance one operation at a time.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Control Bar -->
+    <div class="viz-controls" id="viz-controls">
+      <button class="viz-ctrl-btn" id="viz-reset" data-tooltip="Reset (R)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      </button>
+
+      <button class="viz-ctrl-btn" id="viz-step-back" data-tooltip="Step Back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+      </button>
+
+      <button class="viz-ctrl-btn primary" id="viz-play" data-tooltip="Play / Pause (Space)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" id="play-icon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" id="pause-icon" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+
+      <button class="viz-ctrl-btn" id="viz-step-fwd" data-tooltip="Step Forward (→)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+      </button>
+
+      <div class="viz-speed">
+        <span class="viz-speed-label" id="viz-speed-label">1.0x</span>
+        <input type="range" class="viz-speed-slider" id="viz-speed-slider" min="0.25" max="4" step="0.25" value="1">
+      </div>
+
+      <span class="viz-speed-label" id="viz-step-counter" style="margin-left: var(--space-6);">Step 0 / 0</span>
+    </div>
+
+  </div>
+
+  <script src="assets/JS/visualizer.js"></script>
+</body>
+</html>

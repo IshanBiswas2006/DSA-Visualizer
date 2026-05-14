@@ -1,0 +1,6 @@
+{
+  "name": "Dynamic Programming",
+  "description": "Optimal substructure and overlapping subproblems — memoization and tabulation.",
+  "icon": "grid",
+  "color": "#34d399"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Recursion",
+  "description": "Self-referencing algorithmic patterns — factorial, fibonacci, tower of hanoi.",
+  "icon": "loop",
+  "color": "#818cf8"
+}

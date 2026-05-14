@@ -1,0 +1,6 @@
+{
+  "name": "Graphs",
+  "description": "Vertices and edges — BFS, DFS, shortest path, minimum spanning tree.",
+  "icon": "graph",
+  "color": "#a78bfa"
+}

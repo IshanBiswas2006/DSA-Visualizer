@@ -1,0 +1,6 @@
+{
+  "name": "Queues",
+  "description": "First-In-First-Out (FIFO) data structure with enqueue and dequeue operations.",
+  "icon": "queue",
+  "color": "#fbbf24"
+}

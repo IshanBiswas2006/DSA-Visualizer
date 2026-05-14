@@ -1,0 +1,6 @@
+{
+  "name": "Sorting Algorithms",
+  "description": "Algorithms that arrange elements in a specific order — bubble, selection, insertion, merge, quick sort and more.",
+  "icon": "sort",
+  "color": "#06b6d4"
+}

@@ -45,7 +45,20 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           Back
         </a>
-        <h1 class="viz-algo-name" id="viz-algo-name">Bubble Sort</h1>
+
+        <!-- Algorithm Dropdown Selector -->
+        <div class="algo-dropdown" id="algo-dropdown">
+          <button class="algo-dropdown-trigger" id="algo-dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="algo-dropdown-label" id="algo-dropdown-label">Bubble Sort</span>
+            <svg class="algo-dropdown-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="algo-dropdown-panel" id="algo-dropdown-panel" role="listbox" aria-label="Select algorithm">
+            <div class="algo-dropdown-header" id="algo-dropdown-header">Sorting Algorithms</div>
+            <div class="algo-dropdown-list" id="algo-dropdown-list">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
       </div>
       <div class="viz-topbar-right">
         <span class="chip chip-best" id="chip-best">Best: O(n)</span>
@@ -137,6 +150,7 @@
 
   </div>
 
+  <script src="./assets/JS/algo-registry.js"></script>
   <script src="./assets/JS/step-audio.js"></script>
   <script src="./assets/JS/visualizer.js"></script>
 </body>

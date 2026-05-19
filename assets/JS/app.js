@@ -167,30 +167,48 @@ function initCategoryCards() {
   if (!grid) return;
 
   const categories = [
-    { name: 'Arrays', icon: '⊞', desc: 'Linear data storage with indexed access', count: 'Core', color: '#06b6d4' },
-    { name: 'Linked Lists', icon: '⟶', desc: 'Sequential nodes connected by pointers', count: 'Core', color: '#818cf8' },
-    { name: 'Stacks', icon: '⊡', desc: 'Last-In-First-Out data structure', count: 'Core', color: '#34d399' },
-    { name: 'Queues', icon: '⊟', desc: 'First-In-First-Out data structure', count: 'Core', color: '#fbbf24' },
-    { name: 'Trees', icon: '⊻', desc: 'Hierarchical node-based structures', count: 'Advanced', color: '#f87171' },
-    { name: 'Graphs', icon: '◈', desc: 'Vertices and edges for complex relations', count: 'Advanced', color: '#a78bfa' },
-    { name: 'Sorting', icon: '⇅', desc: 'Arrange elements in specific order', count: '6+ algos', color: '#06b6d4' },
-    { name: 'Searching', icon: '⊕', desc: 'Find elements efficiently', count: '2+ algos', color: '#22d3ee' },
-    { name: 'Recursion', icon: '∞', desc: 'Self-referencing algorithmic patterns', count: 'Paradigm', color: '#818cf8' },
-    { name: 'Dynamic Programming', icon: '⊞', desc: 'Optimal substructure & memoization', count: 'Paradigm', color: '#34d399' },
-    { name: 'Greedy', icon: '✦', desc: 'Locally optimal choices for global solutions', count: 'Paradigm', color: '#fbbf24' },
+    { name: 'Arrays', icon: '⊞', desc: 'Linear data storage with indexed access', count: 'Core', color: '#06b6d4', regKey: 'arrays' },
+    { name: 'Linked Lists', icon: '⟶', desc: 'Sequential nodes connected by pointers', count: 'Core', color: '#818cf8', regKey: 'linked-lists' },
+    { name: 'Stacks', icon: '⊡', desc: 'Last-In-First-Out data structure', count: 'Core', color: '#34d399', regKey: 'stacks' },
+    { name: 'Queues', icon: '⊟', desc: 'First-In-First-Out data structure', count: 'Core', color: '#fbbf24', regKey: 'queues' },
+    { name: 'Trees', icon: '⊻', desc: 'Hierarchical node-based structures', count: 'Advanced', color: '#f87171', regKey: 'trees' },
+    { name: 'Graphs', icon: '◈', desc: 'Vertices and edges for complex relations', count: 'Advanced', color: '#a78bfa', regKey: 'graphs' },
+    { name: 'Sorting', icon: '⇅', desc: 'Arrange elements in specific order', count: '6+ algos', color: '#06b6d4', regKey: 'sorting' },
+    { name: 'Searching', icon: '⊕', desc: 'Find elements efficiently', count: '2+ algos', color: '#22d3ee', regKey: 'searching' },
+    { name: 'Recursion', icon: '∞', desc: 'Self-referencing algorithmic patterns', count: 'Paradigm', color: '#818cf8', regKey: 'recursion' },
+    { name: 'Dynamic Programming', icon: '⊞', desc: 'Optimal substructure & memoization', count: 'Paradigm', color: '#34d399', regKey: 'dynamic-programming' },
+    { name: 'Greedy', icon: '✦', desc: 'Locally optimal choices for global solutions', count: 'Paradigm', color: '#fbbf24', regKey: 'greedy' },
   ];
 
-  grid.innerHTML = categories.map((cat, i) =>
-    `<div class="card category-card animate-on-scroll stagger-${(i % 8) + 1}" id="cat-${cat.name.toLowerCase().replace(/\s+/g, '-')}"
-          onclick="window.location.href='visualizer.html?cat=${cat.name.toLowerCase().replace(/\s+/g, '-')}'">
+  grid.innerHTML = categories.map((cat, i) => {
+    const catSlug = cat.regKey || cat.name.toLowerCase().replace(/\s+/g, '-');
+    const reg = (typeof ALGO_REGISTRY !== 'undefined') ? ALGO_REGISTRY[catSlug] : null;
+    let submenu = '';
+    if (reg && reg.algorithms.length) {
+      const items = reg.algorithms.map(a =>
+        `<a class="cat-submenu-item" href="visualizer.html?cat=${catSlug}&algo=${a.slug}">
+          <span class="cat-submenu-item-name">${a.name}</span>
+          <svg class="cat-submenu-item-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 6 15 12 9 18"/></svg>
+        </a>`
+      ).join('');
+      submenu = `<div class="cat-submenu"><div class="cat-submenu-header">${reg.name}</div><div class="cat-submenu-list">${items}</div></div>`;
+    }
+    return `<div class="card category-card animate-on-scroll stagger-${(i % 8) + 1}" id="cat-${catSlug}"
+          onclick="window.location.href='visualizer.html?cat=${catSlug}'">
       <div class="card-icon" style="background: ${cat.color}15; color: ${cat.color};">
         <span style="font-size: 1.4rem;">${cat.icon}</span>
       </div>
       <h3 class="card-title">${cat.name}</h3>
       <p class="card-description">${cat.desc}</p>
       <span class="algo-count">${cat.count}</span>
-    </div>`
-  ).join('');
+      ${submenu}
+    </div>`;
+  }).join('');
+
+  // Prevent submenu link clicks from triggering card onclick
+  grid.querySelectorAll('.cat-submenu-item').forEach(a => {
+    a.addEventListener('click', e => e.stopPropagation());
+  });
 
   // Re-observe new elements
   initScrollAnimations();

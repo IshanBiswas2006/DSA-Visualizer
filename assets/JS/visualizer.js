@@ -21,45 +21,105 @@ class VisualizationEngine {
     this.playIcon = document.getElementById('play-icon');
     this.pauseIcon = document.getElementById('pause-icon');
     this.soundToggle = document.getElementById('viz-sound-toggle');
-
+    this.dropdownEl = document.getElementById('algo-dropdown');
+    this.dropdownTrigger = document.getElementById('algo-dropdown-trigger');
+    this.dropdownLabel = document.getElementById('algo-dropdown-label');
+    this.dropdownHeader = document.getElementById('algo-dropdown-header');
+    this.dropdownList = document.getElementById('algo-dropdown-list');
+    this.categoryBadge = document.getElementById('viz-category-badge');
+    this.fileNameEl = document.getElementById('viz-file-name');
     this.trace = [];
     this.currentStep = -1;
     this.isPlaying = false;
     this.speed = 1;
     this.playTimer = null;
     this.originalArray = [];
+    this.currentCategory = 'sorting';
+    this.currentAlgo = 'bubble-sort';
+    this.searchTarget = null;
     this.audio = new StepAudioEngine();
   }
 
   init() {
-    this.loadMockData();
+    this.parseURL();
+    this.loadAlgorithm();
     this.renderCode();
     this.renderBars();
     this.updateStepCounter();
     this.bindControls();
     this.bindKeyboard();
+    this.initDropdown();
     this.updateSoundToggleUI();
+  }
+
+  parseURL() {
+    const p = new URLSearchParams(window.location.search);
+    const cat = p.get('cat');
+    if (cat && (ALGO_REGISTRY[cat] || getRegistryCategory(cat))) {
+      this.currentCategory = ALGO_REGISTRY[cat] ? cat : getRegistryCategory(cat);
+    }
+    const algo = p.get('algo');
+    if (algo) { this.currentAlgo = algo; }
+    else {
+      const reg = ALGO_REGISTRY[this.currentCategory];
+      if (reg && reg.algorithms.length) this.currentAlgo = reg.algorithms[0].slug;
+    }
   }
 
   unlockAudio() {
     this.audio.unlock();
   }
 
-  loadMockData() {
-    this.code = [
-      'void bubbleSort(int arr[], int n) {',
-      '  for (int i = 0; i < n-1; i++) {',
-      '    for (int j = 0; j < n-i-1; j++) {',
-      '      if (arr[j] > arr[j+1]) {',
-      '        swap(arr[j], arr[j+1]);',
-      '      }',
-      '    }',
-      '  }',
-      '}',
-    ];
+  loadAlgorithm() {
+    const reg = ALGO_REGISTRY[this.currentCategory];
+    const algoInfo = reg ? reg.algorithms.find(a => a.slug === this.currentAlgo) : null;
+    if (this.categoryBadge && reg) this.categoryBadge.textContent = reg.name;
+    if (this.dropdownLabel && algoInfo) this.dropdownLabel.textContent = algoInfo.name;
+    if (this.dropdownHeader && reg) this.dropdownHeader.textContent = reg.name;
+    if (algoInfo && algoInfo.complexity) {
+      const c = algoInfo.complexity;
+      const s = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      s('chip-best', 'Best: ' + c.best); s('chip-avg', 'Avg: ' + c.avg);
+      s('chip-worst', 'Worst: ' + c.worst); s('chip-space', 'Space: ' + c.space);
+    }
+    this._loadAlgoData();
+  }
 
-    this.originalArray = [64, 34, 25, 12, 22, 11, 90];
-    this.trace = this.generateBubbleSortTrace([...this.originalArray]);
+  _loadAlgoData() {
+    switch (this.currentAlgo) {
+      case 'linear-search':
+        this.code = ['int Linear_Search(int arr[], int n, int key) {','  for (int i = 0; i < n; i++) {','    if (arr[i] == key) {','      return i;','    }','  }','  return -1;','}'];
+        this.originalArray = [64, 34, 25, 12, 22, 11, 90];
+        this.searchTarget = 22;
+        this.trace = this.generateLinearSearchTrace([...this.originalArray], this.searchTarget);
+        if (this.fileNameEl) this.fileNameEl.textContent = 'Linear_Search.cpp';
+        break;
+      case 'binary-search':
+        this.code = ['int Binary_Search(int arr[], int n, int key) {','  int low = 0, high = n - 1;','  while (low <= high) {','    int mid = (low + high) / 2;','    if (arr[mid] == key) return mid;','    else if (arr[mid] < key) low = mid + 1;','    else high = mid - 1;','  }','  return -1;','}'];
+        this.originalArray = [11, 12, 22, 25, 34, 64, 90];
+        this.searchTarget = 25;
+        this.trace = this.generateBinarySearchTrace([...this.originalArray], this.searchTarget);
+        if (this.fileNameEl) this.fileNameEl.textContent = 'Binary_Search.cpp';
+        break;
+      case 'selection-sort':
+        this.code = ['void selectionSort(int arr[], int n) {','  for (int i = 0; i < n-1; i++) {','    int minIdx = i;','    for (int j = i+1; j < n; j++) {','      if (arr[j] < arr[minIdx])','        minIdx = j;','    }','    swap(arr[minIdx], arr[i]);','  }','}'];
+        this.originalArray = [64, 34, 25, 12, 22, 11, 90];
+        this.trace = this.generateSelectionSortTrace([...this.originalArray]);
+        if (this.fileNameEl) this.fileNameEl.textContent = 'selection_sort.cpp';
+        break;
+      case 'insertion-sort':
+        this.code = ['void insertionSort(int arr[], int n) {','  for (int i = 1; i < n; i++) {','    int key = arr[i];','    int j = i - 1;','    while (j >= 0 && arr[j] > key) {','      arr[j+1] = arr[j];','      j--;','    }','    arr[j+1] = key;','  }','}'];
+        this.originalArray = [64, 34, 25, 12, 22, 11, 90];
+        this.trace = this.generateInsertionSortTrace([...this.originalArray]);
+        if (this.fileNameEl) this.fileNameEl.textContent = 'insertion_sort.cpp';
+        break;
+      default: // bubble-sort
+        this.code = ['void bubbleSort(int arr[], int n) {','  for (int i = 0; i < n-1; i++) {','    for (int j = 0; j < n-i-1; j++) {','      if (arr[j] > arr[j+1]) {','        swap(arr[j], arr[j+1]);','      }','    }','  }','}'];
+        this.originalArray = [64, 34, 25, 12, 22, 11, 90];
+        this.trace = this.generateBubbleSortTrace([...this.originalArray]);
+        if (this.fileNameEl) this.fileNameEl.textContent = 'bubble_sort.cpp';
+        break;
+    }
   }
 
   generateBubbleSortTrace(arr) {
@@ -110,6 +170,131 @@ class VisualizationEngine {
     });
 
     return trace;
+  }
+
+  generateLinearSearchTrace(arr, key) {
+    const trace = [];
+    const n = arr.length;
+    trace.push({ line: 0, action: 'init', indices: [], array: [...arr], variables: { n, key }, description: `Starting Linear Search for key = <strong>${key}</strong>.` });
+    for (let i = 0; i < n; i++) {
+      trace.push({ line: 2, action: 'compare', indices: [i], array: [...arr], variables: { i, 'arr[i]': arr[i], key }, description: `Checking arr[${i}] = <strong>${arr[i]}</strong> against key = <strong>${key}</strong>.` });
+      if (arr[i] === key) {
+        trace.push({ line: 3, action: 'found', indices: [i], array: [...arr], variables: { i, 'arr[i]': arr[i], key }, description: `<strong>Found!</strong> Key ${key} is at index <strong>${i}</strong>.` });
+        return trace;
+      }
+    }
+    trace.push({ line: 6, action: 'not-found', indices: [], array: [...arr], variables: { key }, description: `Key <strong>${key}</strong> was <strong>not found</strong> in the array.` });
+    return trace;
+  }
+
+  generateBinarySearchTrace(arr, key) {
+    const trace = []; const n = arr.length;
+    trace.push({ line: 0, action: 'init', indices: [], array: [...arr], variables: { n, key }, description: `Starting Binary Search for key = <strong>${key}</strong> in sorted array.` });
+    let low = 0, high = n - 1;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      trace.push({ line: 3, action: 'compare', indices: [mid], array: [...arr], variables: { low, high, mid, 'arr[mid]': arr[mid], key }, description: `Checking mid = ${mid}, arr[${mid}] = <strong>${arr[mid]}</strong> vs key = <strong>${key}</strong>.` });
+      if (arr[mid] === key) {
+        trace.push({ line: 4, action: 'found', indices: [mid], array: [...arr], variables: { mid, key }, description: `<strong>Found!</strong> Key ${key} at index <strong>${mid}</strong>.` });
+        return trace;
+      } else if (arr[mid] < key) {
+        low = mid + 1;
+        trace.push({ line: 5, action: 'loop-outer', indices: [], array: [...arr], variables: { low, high, key }, description: `arr[mid] < key → search right half. low = ${low}.` });
+      } else {
+        high = mid - 1;
+        trace.push({ line: 6, action: 'loop-outer', indices: [], array: [...arr], variables: { low, high, key }, description: `arr[mid] > key → search left half. high = ${high}.` });
+      }
+    }
+    trace.push({ line: 8, action: 'not-found', indices: [], array: [...arr], variables: { key }, description: `Key <strong>${key}</strong> was <strong>not found</strong>.` });
+    return trace;
+  }
+
+  generateSelectionSortTrace(arr) {
+    const trace = []; const n = arr.length;
+    trace.push({ line: 0, action: 'init', indices: [], array: [...arr], variables: { n }, description: 'Starting Selection Sort.' });
+    for (let i = 0; i < n - 1; i++) {
+      let minIdx = i;
+      trace.push({ line: 1, action: 'loop-outer', indices: [i], array: [...arr], variables: { i, minIdx }, description: `Pass ${i + 1}: finding minimum from index ${i}.` });
+      for (let j = i + 1; j < n; j++) {
+        trace.push({ line: 4, action: 'compare', indices: [j, minIdx], array: [...arr], variables: { i, j, minIdx, 'arr[j]': arr[j], 'arr[min]': arr[minIdx] }, description: `Comparing arr[${j}]=${arr[j]} with arr[${minIdx}]=${arr[minIdx]}.` });
+        if (arr[j] < arr[minIdx]) minIdx = j;
+      }
+      if (minIdx !== i) {
+        [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+        trace.push({ line: 7, action: 'swap', indices: [i, minIdx], array: [...arr], variables: { i, minIdx }, description: `Swapping arr[${i}] and arr[${minIdx}] → [${arr.join(', ')}]` });
+      }
+      trace.push({ line: 8, action: 'sorted', indices: [i], array: [...arr], variables: { i }, description: `Index ${i} is now sorted.` });
+    }
+    trace.push({ line: 9, action: 'done', indices: [], array: [...arr], variables: {}, description: 'Array is fully sorted!' });
+    return trace;
+  }
+
+  generateInsertionSortTrace(arr) {
+    const trace = []; const n = arr.length;
+    trace.push({ line: 0, action: 'init', indices: [], array: [...arr], variables: { n }, description: 'Starting Insertion Sort.' });
+    for (let i = 1; i < n; i++) {
+      const key = arr[i]; let j = i - 1;
+      trace.push({ line: 2, action: 'compare', indices: [i], array: [...arr], variables: { i, key, j }, description: `Pick key = arr[${i}] = <strong>${key}</strong>.` });
+      while (j >= 0 && arr[j] > key) {
+        arr[j + 1] = arr[j];
+        trace.push({ line: 5, action: 'swap', indices: [j, j + 1], array: [...arr], variables: { j, 'arr[j]': arr[j], key }, description: `Shift arr[${j}] right → [${arr.join(', ')}]` });
+        j--;
+      }
+      arr[j + 1] = key;
+      trace.push({ line: 8, action: 'sorted', indices: [j + 1], array: [...arr], variables: { i, key, 'position': j + 1 }, description: `Insert key=${key} at index ${j + 1} → [${arr.join(', ')}]` });
+    }
+    trace.push({ line: 9, action: 'done', indices: [], array: [...arr], variables: {}, description: 'Array is fully sorted!' });
+    return trace;
+  }
+
+  /* ── Dropdown ─────────────────────────────────────────────── */
+  initDropdown() {
+    if (!this.dropdownEl || typeof ALGO_REGISTRY === 'undefined') return;
+    this.populateDropdown();
+    this.dropdownTrigger.addEventListener('click', () => {
+      const open = this.dropdownEl.classList.toggle('open');
+      this.dropdownTrigger.setAttribute('aria-expanded', open);
+    });
+    document.addEventListener('click', (e) => {
+      if (!this.dropdownEl.contains(e.target)) this.dropdownEl.classList.remove('open');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.dropdownEl.classList.remove('open');
+    });
+  }
+
+  populateDropdown() {
+    const reg = ALGO_REGISTRY[this.currentCategory];
+    if (!reg || !this.dropdownList) return;
+    this.dropdownList.innerHTML = reg.algorithms.map(a => {
+      const active = a.slug === this.currentAlgo ? ' active' : '';
+      const badge = a.implemented ? '<span class="algo-dropdown-item-badge implemented">Ready</span>' : '<span class="algo-dropdown-item-badge coming-soon">Soon</span>';
+      return `<button class="algo-dropdown-item${active}" data-slug="${a.slug}" role="option"><span class="algo-dropdown-item-name">${a.name}</span>${badge}</button>`;
+    }).join('');
+    this.dropdownList.querySelectorAll('.algo-dropdown-item').forEach(btn => {
+      btn.addEventListener('click', () => this.switchAlgorithm(btn.dataset.slug));
+    });
+  }
+
+  switchAlgorithm(slug) {
+    this.dropdownEl.classList.remove('open');
+    if (slug === this.currentAlgo) return;
+    this.currentAlgo = slug;
+    this.pause();
+    this.currentStep = -1;
+    this.loadAlgorithm();
+    this.populateDropdown();
+    this.canvas.innerHTML = '';
+    this.renderCode();
+    this.renderBars();
+    this.updateStepCounter();
+    this.updateVariables({});
+    this.updateDescription('Press <strong>Play</strong> to start, or use <strong>Step</strong>.');
+    if (this.progressBar) this.progressBar.style.width = '0%';
+    if (this.codeBody) this.codeBody.querySelectorAll('.viz-code-line').forEach(l => l.classList.remove('active'));
+    const url = new URL(window.location);
+    url.searchParams.set('algo', slug);
+    window.history.replaceState({}, '', url);
   }
 
   renderCode() {
@@ -200,6 +385,7 @@ class VisualizationEngine {
     if (highlights.swapping?.includes(i)) classes.push('swapping');
     if (highlights.sorted?.includes(i)) classes.push('sorted');
     if (highlights.active?.includes(i)) classes.push('active');
+    if (highlights.found?.includes(i)) classes.push('sorted');
     return classes;
   }
 
@@ -263,6 +449,7 @@ class VisualizationEngine {
     const highlights = { sorted: [...sortedIndices] };
     if (step.action === 'compare') highlights.comparing = step.indices;
     if (step.action === 'swap') highlights.swapping = step.indices;
+    if (step.action === 'found') highlights.found = step.indices;
 
     this.renderBars(step.array, highlights);
     this.highlightLine(step.line);
@@ -390,12 +577,17 @@ class VisualizationEngine {
     this.pause();
     this.unlockAudio();
     this.originalArray = Array.from({ length: 7 }, () => Math.floor(Math.random() * 90) + 10);
-    this.trace = this.generateBubbleSortTrace([...this.originalArray]);
+    const isSearch = ['linear-search','binary-search'].includes(this.currentAlgo);
+    if (isSearch) {
+      this.searchTarget = this.originalArray[Math.floor(Math.random() * this.originalArray.length)];
+      if (this.currentAlgo === 'binary-search') this.originalArray.sort((a,b) => a - b);
+    }
+    this._loadAlgoData();
     this.currentStep = -1;
     this.canvas.innerHTML = '';
     this.renderBars();
     this.updateStepCounter();
-    this.updateDescription('Array randomized! Press <strong>Play</strong> to sort.');
+    this.updateDescription('Array randomized! Press <strong>Play</strong> to start.');
     if (this.progressBar) this.progressBar.style.width = '0%';
     if (this.codeBody) {
       this.codeBody.querySelectorAll('.viz-code-line').forEach((l) => l.classList.remove('active'));

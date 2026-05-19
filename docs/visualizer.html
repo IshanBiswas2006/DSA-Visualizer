@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="AlgoViz Visualizer — Interactive step-by-step algorithm visualization with code highlighting, array animations, and variable tracking.">
   <title>Visualizer — AlgoViz</title>
+  <!-- <base href="/DSA-Visualizer/"> -->
 
-  <link rel="stylesheet" href="assets/CSS/variables.css">
-  <link rel="stylesheet" href="assets/CSS/base.css">
-  <link rel="stylesheet" href="assets/CSS/animations.css">
-  <link rel="stylesheet" href="assets/CSS/components.css">
-  <link rel="stylesheet" href="assets/CSS/layout.css">
-  <link rel="stylesheet" href="assets/CSS/visualizer.css">
+  <link rel="stylesheet" href="./assets/CSS/variables.css">
+  <link rel="stylesheet" href="./assets/CSS/base.css">
+  <link rel="stylesheet" href="./assets/CSS/animations.css">
+  <link rel="stylesheet" href="./assets/CSS/components.css">
+  <link rel="stylesheet" href="./assets/CSS/layout.css">
+  <link rel="stylesheet" href="./assets/CSS/visualizer.css">
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2306b6d4'/><text x='50%25' y='55%25' dominant-baseline='central' text-anchor='middle' fill='%230a0f1a' font-family='monospace' font-size='18' font-weight='900'>A</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%234f46e5'/><text x='50%25' y='55%25' dominant-baseline='central' text-anchor='middle' fill='%230a0f1a' font-family='monospace' font-size='18' font-weight='900'>A</text></svg>">
 </head>
 <body>
 
@@ -121,16 +122,22 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
       </button>
 
+      <button class="viz-ctrl-btn viz-sound-btn" id="viz-sound-toggle" type="button" aria-pressed="true" aria-label="Toggle step sounds" title="Toggle step sounds">
+        <svg class="viz-sound-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        <svg class="viz-sound-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      </button>
+
       <div class="viz-speed">
         <span class="viz-speed-label" id="viz-speed-label">1.0x</span>
-        <input type="range" class="viz-speed-slider" id="viz-speed-slider" min="0.25" max="4" step="0.25" value="1">
+        <input type="range" class="viz-speed-slider" id="viz-speed-slider" min="0.25" max="4" step="0.25" value="1" aria-label="Playback speed">
       </div>
 
-      <span class="viz-speed-label" id="viz-step-counter" style="margin-left: var(--space-6);">Step 0 / 0</span>
+      <span class="viz-step-counter" id="viz-step-counter">Step 0 / 0</span>
     </div>
 
   </div>
 
-  <script src="assets/JS/visualizer.js"></script>
+  <script src="./assets/JS/step-audio.js"></script>
+  <script src="./assets/JS/visualizer.js"></script>
 </body>
 </html>

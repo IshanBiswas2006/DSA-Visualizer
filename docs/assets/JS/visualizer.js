@@ -1,6 +1,6 @@
 /* ============================================================
    DSA Visualizer — Visualization Engine
-   Trace player, array renderer, code highlighter, controls.
+   Trace player, array renderer, code highlighter, controls, step audio.
    ============================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,29 +8,27 @@ document.addEventListener('DOMContentLoaded', () => {
   engine.init();
 });
 
-/* ══════════════════════════════════════════════════════════════
-   VISUALIZATION ENGINE
-   ══════════════════════════════════════════════════════════════ */
 class VisualizationEngine {
   constructor() {
-    // DOM references
     this.codeBody = document.getElementById('viz-code-body');
     this.canvas = document.getElementById('viz-canvas');
     this.varsGrid = document.getElementById('viz-vars-grid');
     this.stepText = document.getElementById('viz-step-text');
+    this.stepDescription = document.getElementById('viz-description');
     this.progressBar = document.getElementById('viz-progress');
     this.stepCounter = document.getElementById('viz-step-counter');
     this.speedLabel = document.getElementById('viz-speed-label');
     this.playIcon = document.getElementById('play-icon');
     this.pauseIcon = document.getElementById('pause-icon');
+    this.soundToggle = document.getElementById('viz-sound-toggle');
 
-    // State
     this.trace = [];
     this.currentStep = -1;
     this.isPlaying = false;
     this.speed = 1;
     this.playTimer = null;
     this.originalArray = [];
+    this.audio = new StepAudioEngine();
   }
 
   init() {
@@ -40,9 +38,13 @@ class VisualizationEngine {
     this.updateStepCounter();
     this.bindControls();
     this.bindKeyboard();
+    this.updateSoundToggleUI();
   }
 
-  /* ── Mock Trace Data (Phase 1) ─────────────────────────── */
+  unlockAudio() {
+    this.audio.unlock();
+  }
+
   loadMockData() {
     this.code = [
       'void bubbleSort(int arr[], int n) {',
@@ -57,8 +59,6 @@ class VisualizationEngine {
     ];
 
     this.originalArray = [64, 34, 25, 12, 22, 11, 90];
-
-    // Build trace: each step is { line, action, indices, array, variables, description }
     this.trace = this.generateBubbleSortTrace([...this.originalArray]);
   }
 
@@ -80,7 +80,6 @@ class VisualizationEngine {
       });
 
       for (let j = 0; j < n - i - 1; j++) {
-        // Compare
         trace.push({
           line: 3, action: 'compare', indices: [j, j + 1], array: [...arr],
           variables: { i: i, j: j, 'arr[j]': arr[j], 'arr[j+1]': arr[j + 1] },
@@ -88,7 +87,6 @@ class VisualizationEngine {
         });
 
         if (arr[j] > arr[j + 1]) {
-          // Swap
           [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
           trace.push({
             line: 4, action: 'swap', indices: [j, j + 1], array: [...arr],
@@ -98,7 +96,6 @@ class VisualizationEngine {
         }
       }
 
-      // Mark sorted element
       trace.push({
         line: 6, action: 'sorted', indices: [n - i - 1], array: [...arr],
         variables: { i: i },
@@ -106,17 +103,15 @@ class VisualizationEngine {
       });
     }
 
-    // Final sorted
     trace.push({
       line: 8, action: 'done', indices: [], array: [...arr],
       variables: {},
-      description: 'Array is fully sorted! ✓'
+      description: 'Array is fully sorted!'
     });
 
     return trace;
   }
 
-  /* ── Render Code Panel ──────────────────────────────────── */
   renderCode() {
     if (!this.codeBody) return;
     this.codeBody.innerHTML = this.code.map((line, i) =>
@@ -134,12 +129,10 @@ class VisualizationEngine {
     let i = 0;
 
     while (i < line.length) {
-      // Comments
       if (line[i] === '/' && line[i + 1] === '/') {
         tokens.push('<span class="syn-comment">' + this.esc(line.slice(i)) + '</span>');
         break;
       }
-      // Strings
       if (line[i] === '"' || line[i] === "'") {
         const q = line[i];
         let str = q;
@@ -149,7 +142,6 @@ class VisualizationEngine {
         tokens.push('<span class="syn-string">' + this.esc(str) + '</span>');
         continue;
       }
-      // Words (keywords, functions, identifiers)
       if (/[a-zA-Z_]/.test(line[i])) {
         let word = '';
         while (i < line.length && /[a-zA-Z_0-9]/.test(line[i])) { word += line[i]; i++; }
@@ -158,27 +150,23 @@ class VisualizationEngine {
         else tokens.push(word);
         continue;
       }
-      // Numbers
       if (/[0-9]/.test(line[i])) {
         let num = '';
         while (i < line.length && /[0-9.]/.test(line[i])) { num += line[i]; i++; }
         tokens.push('<span class="syn-number">' + num + '</span>');
         continue;
       }
-      // Operators
       if ('<>=!&|+-*/%^~'.includes(line[i])) {
         let op = '';
         while (i < line.length && '<>=!&|+-*/%^~'.includes(line[i])) { op += line[i]; i++; }
         tokens.push('<span class="syn-operator">' + this.esc(op) + '</span>');
         continue;
       }
-      // Brackets
       if ('()[]{}'.includes(line[i])) {
         tokens.push('<span class="syn-bracket">' + this.esc(line[i]) + '</span>');
         i++;
         continue;
       }
-      // Semicolons, commas, dots — plain
       tokens.push(this.esc(line[i]));
       i++;
     }
@@ -189,22 +177,37 @@ class VisualizationEngine {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  /* ── Render Array Bars ──────────────────────────────────── */
   renderBars(array, highlights = {}) {
     if (!this.canvas) return;
     const arr = array || this.originalArray;
+    const bars = this.canvas.querySelectorAll('.array-bar');
+
+    if (bars.length !== arr.length) {
+      this._buildBarsDOM(arr, highlights);
+      return;
+    }
+
+    this._updateBarsInPlace(arr, highlights);
+  }
+
+  _barHeight(val, maxVal) {
+    return Math.max(20, (val / maxVal) * 280);
+  }
+
+  _stateClasses(i, highlights) {
+    const classes = [];
+    if (highlights.comparing?.includes(i)) classes.push('comparing');
+    if (highlights.swapping?.includes(i)) classes.push('swapping');
+    if (highlights.sorted?.includes(i)) classes.push('sorted');
+    if (highlights.active?.includes(i)) classes.push('active');
+    return classes;
+  }
+
+  _buildBarsDOM(arr, highlights) {
     const maxVal = Math.max(...arr);
-    const barMaxHeight = 280;
-
     this.canvas.innerHTML = arr.map((val, i) => {
-      const height = Math.max(20, (val / maxVal) * barMaxHeight);
-      let stateClass = '';
-
-      if (highlights.comparing && highlights.comparing.includes(i)) stateClass = 'comparing';
-      if (highlights.swapping && highlights.swapping.includes(i)) stateClass = 'swapping';
-      if (highlights.sorted && highlights.sorted.includes(i)) stateClass = 'sorted';
-      if (highlights.active && highlights.active.includes(i)) stateClass = 'active';
-
+      const height = this._barHeight(val, maxVal);
+      const stateClass = this._stateClasses(i, highlights).join(' ');
       return `<div class="array-bar ${stateClass}" data-index="${i}">
         <span class="array-bar-value">${val}</span>
         <div class="array-bar-rect" style="height: ${height}px;"></div>
@@ -213,42 +216,71 @@ class VisualizationEngine {
     }).join('');
   }
 
-  /* ── Execute Step ───────────────────────────────────────── */
-  goToStep(stepIndex) {
+  _updateBarsInPlace(arr, highlights) {
+    const maxVal = Math.max(...arr);
+    const bars = this.canvas.querySelectorAll('.array-bar');
+
+    arr.forEach((val, i) => {
+      const bar = bars[i];
+      if (!bar) return;
+      const rect = bar.querySelector('.array-bar-rect');
+      const valueEl = bar.querySelector('.array-bar-value');
+      const height = this._barHeight(val, maxVal);
+
+      if (rect) rect.style.height = `${height}px`;
+      if (valueEl) valueEl.textContent = val;
+
+      bar.classList.remove('comparing', 'swapping', 'sorted', 'active', 'pulse-compare', 'pulse-swap');
+      this._stateClasses(i, highlights).forEach((c) => bar.classList.add(c));
+
+      if (highlights.swapping?.includes(i)) {
+        bar.classList.add('pulse-swap');
+        bar.addEventListener('animationend', () => bar.classList.remove('pulse-swap'), { once: true });
+      } else if (highlights.comparing?.includes(i)) {
+        bar.classList.add('pulse-compare');
+        bar.addEventListener('animationend', () => bar.classList.remove('pulse-compare'), { once: true });
+      }
+    });
+  }
+
+  goToStep(stepIndex, options = {}) {
+    const { playSound = true, forward = true } = options;
     if (stepIndex < 0 || stepIndex >= this.trace.length) return;
 
     this.currentStep = stepIndex;
     const step = this.trace[stepIndex];
 
-    // Track all sorted indices up to this step
     const sortedIndices = new Set();
     for (let s = 0; s <= stepIndex; s++) {
       if (this.trace[s].action === 'sorted') {
-        this.trace[s].indices.forEach(idx => sortedIndices.add(idx));
+        this.trace[s].indices.forEach((idx) => sortedIndices.add(idx));
       }
     }
     if (step.action === 'done') {
       step.array.forEach((_, i) => sortedIndices.add(i));
     }
 
-    // Build highlights
     const highlights = { sorted: [...sortedIndices] };
     if (step.action === 'compare') highlights.comparing = step.indices;
     if (step.action === 'swap') highlights.swapping = step.indices;
 
-    // Update UI
     this.renderBars(step.array, highlights);
     this.highlightLine(step.line);
     this.updateVariables(step.variables);
     this.updateDescription(step.description);
     this.updateProgress();
     this.updateStepCounter();
+
+    if (playSound && forward && step.action !== 'init') {
+      this.unlockAudio();
+      this.audio.playForAction(step.action);
+    }
   }
 
   highlightLine(lineIndex) {
     if (!this.codeBody) return;
     const lines = this.codeBody.querySelectorAll('.viz-code-line');
-    lines.forEach(l => l.classList.remove('active'));
+    lines.forEach((l) => l.classList.remove('active'));
     if (lines[lineIndex]) {
       lines[lineIndex].classList.add('active');
       lines[lineIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -258,11 +290,11 @@ class VisualizationEngine {
   updateVariables(vars) {
     if (!this.varsGrid) return;
     if (!vars || Object.keys(vars).length === 0) {
-      this.varsGrid.innerHTML = '<span style="color: var(--color-text-muted); font-size: 12px;">No variables in scope</span>';
+      this.varsGrid.innerHTML = '<span class="viz-var-empty">No variables in scope</span>';
       return;
     }
     this.varsGrid.innerHTML = Object.entries(vars).map(([name, val]) =>
-      `<div class="viz-var">
+      `<div class="viz-var viz-var-enter">
         <span class="viz-var-name">${name}</span>
         <span class="viz-var-eq">=</span>
         <span class="viz-var-val">${val}</span>
@@ -271,7 +303,12 @@ class VisualizationEngine {
   }
 
   updateDescription(desc) {
-    if (this.stepText) this.stepText.innerHTML = desc;
+    if (!this.stepText) return;
+    if (this.stepDescription) this.stepDescription.classList.remove('step-updated');
+    this.stepText.innerHTML = desc;
+    if (this.stepDescription) {
+      requestAnimationFrame(() => this.stepDescription.classList.add('step-updated'));
+    }
   }
 
   updateProgress() {
@@ -282,12 +319,13 @@ class VisualizationEngine {
 
   updateStepCounter() {
     if (this.stepCounter) {
-      this.stepCounter.textContent = `Step ${Math.max(0, this.currentStep + 1)} / ${this.trace.length}`;
+      const n = Math.max(0, this.currentStep + 1);
+      this.stepCounter.textContent = `Step ${n} / ${this.trace.length}`;
     }
   }
 
-  /* ── Playback Controls ─────────────────────────────────── */
   play() {
+    this.unlockAudio();
     if (this.currentStep >= this.trace.length - 1) {
       this.reset();
     }
@@ -303,6 +341,7 @@ class VisualizationEngine {
   }
 
   togglePlay() {
+    this.unlockAudio();
     if (this.isPlaying) this.pause();
     else this.play();
   }
@@ -313,31 +352,33 @@ class VisualizationEngine {
       this.pause();
       return;
     }
-    this.goToStep(this.currentStep + 1);
-    const delay = 600 / this.speed;
+    this.goToStep(this.currentStep + 1, { playSound: true, forward: true });
+    const delay = Math.max(120, 550 / this.speed);
     this.playTimer = setTimeout(() => this.tick(), delay);
   }
 
   stepForward() {
     this.pause();
+    this.unlockAudio();
     if (this.currentStep < this.trace.length - 1) {
-      this.goToStep(this.currentStep + 1);
+      this.goToStep(this.currentStep + 1, { playSound: true, forward: true });
     }
   }
 
   stepBackward() {
     this.pause();
     if (this.currentStep > 0) {
-      this.goToStep(this.currentStep - 1);
+      this.goToStep(this.currentStep - 1, { playSound: false, forward: false });
     }
   }
 
   reset() {
     this.pause();
     this.currentStep = -1;
+    this.canvas.innerHTML = '';
     this.renderBars();
     if (this.codeBody) {
-      this.codeBody.querySelectorAll('.viz-code-line').forEach(l => l.classList.remove('active'));
+      this.codeBody.querySelectorAll('.viz-code-line').forEach((l) => l.classList.remove('active'));
     }
     this.updateVariables({});
     this.updateDescription('Press <strong>Play</strong> to start the visualization, or use <strong>Step</strong> to advance one operation at a time.');
@@ -347,15 +388,17 @@ class VisualizationEngine {
 
   randomize() {
     this.pause();
+    this.unlockAudio();
     this.originalArray = Array.from({ length: 7 }, () => Math.floor(Math.random() * 90) + 10);
     this.trace = this.generateBubbleSortTrace([...this.originalArray]);
     this.currentStep = -1;
+    this.canvas.innerHTML = '';
     this.renderBars();
     this.updateStepCounter();
     this.updateDescription('Array randomized! Press <strong>Play</strong> to sort.');
     if (this.progressBar) this.progressBar.style.width = '0%';
     if (this.codeBody) {
-      this.codeBody.querySelectorAll('.viz-code-line').forEach(l => l.classList.remove('active'));
+      this.codeBody.querySelectorAll('.viz-code-line').forEach((l) => l.classList.remove('active'));
     }
     this.updateVariables({});
   }
@@ -368,13 +411,35 @@ class VisualizationEngine {
   updatePlayButton() {
     if (this.playIcon) this.playIcon.style.display = this.isPlaying ? 'none' : 'block';
     if (this.pauseIcon) this.pauseIcon.style.display = this.isPlaying ? 'block' : 'none';
+    const playBtn = document.getElementById('viz-play');
+    if (playBtn) playBtn.classList.toggle('is-playing', this.isPlaying);
   }
 
-  /* ── Bind UI Controls ───────────────────────────────────── */
+  toggleSound() {
+    this.unlockAudio();
+    this.audio.setEnabled(!this.audio.enabled);
+    this.updateSoundToggleUI();
+    if (this.audio.enabled) this.audio.compare();
+  }
+
+  updateSoundToggleUI() {
+    if (!this.soundToggle) return;
+    const on = this.audio.enabled;
+    this.soundToggle.classList.toggle('muted', !on);
+    this.soundToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+    const onIcon = this.soundToggle.querySelector('.viz-sound-on');
+    const offIcon = this.soundToggle.querySelector('.viz-sound-off');
+    if (onIcon) onIcon.hidden = !on;
+    if (offIcon) offIcon.hidden = on;
+  }
+
   bindControls() {
     const btn = (id, fn) => {
       const el = document.getElementById(id);
-      if (el) el.addEventListener('click', () => fn.call(this));
+      if (el) el.addEventListener('click', () => {
+        this.unlockAudio();
+        fn.call(this);
+      });
     };
 
     btn('viz-play', this.togglePlay);
@@ -382,6 +447,10 @@ class VisualizationEngine {
     btn('viz-step-fwd', this.stepForward);
     btn('viz-step-back', this.stepBackward);
     btn('viz-randomize', this.randomize);
+
+    if (this.soundToggle) {
+      this.soundToggle.addEventListener('click', () => this.toggleSound());
+    }
 
     const slider = document.getElementById('viz-speed-slider');
     if (slider) {
@@ -410,6 +479,11 @@ class VisualizationEngine {
         case 'R':
           e.preventDefault();
           this.reset();
+          break;
+        case 'm':
+        case 'M':
+          e.preventDefault();
+          this.toggleSound();
           break;
       }
     });

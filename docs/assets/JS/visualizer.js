@@ -247,6 +247,21 @@ class VisualizationEngine {
     return trace;
   }
 
+  _generateTrace(arr) {
+    switch (this.currentAlgo) {
+      case 'linear-search':
+        return this.generateLinearSearchTrace(arr, this.searchTarget);
+      case 'binary-search':
+        return this.generateBinarySearchTrace(arr, this.searchTarget);
+      case 'selection-sort':
+        return this.generateSelectionSortTrace(arr);
+      case 'insertion-sort':
+        return this.generateInsertionSortTrace(arr);
+      default: // bubble-sort
+        return this.generateBubbleSortTrace(arr);
+    }
+  }
+
   /* ── Dropdown ─────────────────────────────────────────────── */
   initDropdown() {
     if (!this.dropdownEl || typeof ALGO_REGISTRY === 'undefined') return;
@@ -582,7 +597,8 @@ class VisualizationEngine {
       this.searchTarget = this.originalArray[Math.floor(Math.random() * this.originalArray.length)];
       if (this.currentAlgo === 'binary-search') this.originalArray.sort((a,b) => a - b);
     }
-    this._loadAlgoData();
+    // Regenerate trace from the new random array (don't call _loadAlgoData which resets to hardcoded values)
+    this.trace = this._generateTrace([...this.originalArray]);
     this.currentStep = -1;
     this.canvas.innerHTML = '';
     this.renderBars();
